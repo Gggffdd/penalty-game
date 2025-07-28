@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Пенальти Мастер</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: skyblue;
+        }
+        
+        #uiContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #scoreDisplay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+        
+        #messageDisplay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: yellow;
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+        
+        #powerBar {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        
+        #powerFill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #00ff00, #ffff00, #ff0000);
+            transition: width 0.1s;
+        }
+        
+        #powerText {
+            position: absolute;
+            top: -25px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+        
+        #menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        #menu h1 {
+            color: yellow;
+            font-size: 36px;
+            margin-bottom: 30px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+        
+        .menu-btn {
+            width: 80%;
+            max-width: 300px;
+            padding: 15px;
+            margin: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            background-color: #1a6bff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        
+        .menu-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .difficulty-btn {
+            background-color: #333;
+        }
+        
+        #startBtn {
+            background-color: #28a745;
+            margin-top: 30px;
+        }
+        
+        #resultScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        #resultTitle {
+            color: yellow;
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+        
+        #resultScore {
+            color: white;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        #resultRating {
+            color: #ffcc00;
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        #restartBtn, #menuBtn {
+            width: 80%;
+            max-width: 300px;
+            padding: 15px;
+            margin: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        #restartBtn {
+            background-color: #1a6bff;
+        }
+        
+        #menuBtn {
+            background-color: #6c757d;
+        }
+        
+        #instruction {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 500px) {
+            #menu h1 {
+                font-size: 28px;
+            }
+            
+            .menu-btn {
+                font-size: 18px;
+                padding: 12px;
+            }
+            
+            #resultTitle {
+                font-size: 30px;
+            }
+            
+            #resultScore {
+                font-size: 24px;
+            }
+            
+            #resultRating {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="uiContainer">
+        <div id="scoreDisplay">Голы: 0/0</div>
+        <div id="messageDisplay"></div>
+        <div id="powerBar">
+            <div id="powerText">Сила удара: 0%</div>
+            <div id="powerFill"></div>
+        </div>
+        <div id="instruction">Проведите пальцем по мячу, чтобы ударить</div>
+    </div>
+    
+    <div id="menu">
+        <h1>ПЕНАЛЬТИ МАСТЕР</h1>
+        <button class="menu-btn difficulty-btn" data-difficulty="easy">Легкий</button>
+        <button class="menu-btn difficulty-btn" data-difficulty="medium">Средний</button>
+        <button class="menu-btn difficulty-btn" data-difficulty="hard">Сложный</button>
+        <button class="menu-btn" id="startBtn">НАЧАТЬ ИГРУ</button>
+    </div>
+    
+    <div id="resultScreen">
+        <h2 id="resultTitle">РЕЗУЛЬТАТ</h2>
+        <div id="resultScore">Ваш счет: 0 из 5</div>
+        <div id="resultRating"></div>
+        <button id="restartBtn">ИГРАТЬ СНОВА</button>
+        <button id="menuBtn">ГЛАВНОЕ МЕНЮ</button>
+    </div>
+
+    <script>
+        // Инициализация canvas
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const uiContainer = document.getElementById('uiContainer');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const messageDisplay = document.getElementById('messageDisplay');
+        const powerBar = document.getElementById('powerBar');
+        const powerFill = document.getElementById('powerFill');
+        const powerText = document.getElementById('powerText');
+        const instruction = document.getElementById('instruction');
+        const menu = document.getElementById('menu');
+        const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+        const startBtn = document.getElementById('startBtn');
+        const resultScreen = document.getElementById('resultScreen');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultScore = document.getElementById('resultScore');
+        const resultRating = document.getElementById('resultRating');
+        const restartBtn = document.getElementById('restartBtn');
+        const menuBtn = document.getElementById('menuBtn');
+
+        // Размеры canvas
+        let canvasWidth, canvasHeight;
+        
+        // Игровые переменные
+        let gameState = 'menu'; // menu, playing, result
+        let difficulty = 'medium';
+        let score = 0;
+        let attempts = 0;
+        let message = '';
+        let messageTimer = 0;
+        let power = 0;
+        let swipeStart = null;
+        let swipeEnd = null;
+        let isSwiping = false;
+        
+        // Игровые объекты
+        const ball = {
+            x: 0,
+            y: 0,
+            radius: 15,
+            speedX: 0,
+            speedY: 0,
+            moving: false,
+            scored: false,
+            saved: false,
+            rotation: 0,
+            rotationSpeed: 0,
+            trail: []
+        };
+        
+        const goalkeeper = {
+            x: 0,
+            y: 100,
+            width: 80,
+            height: 120,
+            speed: 3,
+            direction: 1,
+            moving: true,
+            catchAnimation: 0,
+            saveX: 0,
+            saveY: 0
+        };
+        
+        const goal = {
+            x: 0,
+            y: 150,
+            width: 300,
+            height: 200
+        };
+        
+        // Частицы для эффектов
+        let particles = [];
+        
+        // Звуки
+        const sounds = {
+            kick: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...'),
+            goal: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...'),
+            miss: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...')
+        };
+        
+        // Упрощенные звуки (базовые тоны)
+        function playSound(type) {
+            try {
+                sounds[type].currentTime = 0;
+                sounds[type].play();
+            } catch (e) {
+                // Простой fallback звук
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                if (type === 'kick') {
+                    oscillator.frequency.value = 300;
+                    gainNode.gain.exponentialRampToValueAtTime(0.1, audioContext.currentTime + 0.1);
+                } else if (type === 'goal') {
+                    oscillator.frequency.value = 600;
+                    gainNode.gain.exponentialRampToValueAtTime(0.1, audioContext.currentTime + 0.3);
+                } else if (type === 'miss') {
+                    oscillator.frequency.value = 200;
+                    gainNode.gain.exponentialRampToValueAtTime(0.1, audioContext.currentTime + 0.3);
+                }
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.3);
+            }
+        }
+        
+        // AudioContext для fallback звуков
+        let audioContext;
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.log('Web Audio API не поддерживается');
+        }
+        
+        // Настройка размеров canvas
+        function resizeCanvas() {
+            canvasWidth = window.innerWidth;
+            canvasHeight = window.innerHeight;
+            
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            
+            // Обновляем позиции объектов
+            ball.x = canvasWidth / 2;
+            ball.y = canvasHeight - 150;
+            goal.x = canvasWidth / 2 - goal.width / 2;
+            goalkeeper.x = canvasWidth / 2 - goalkeeper.width / 2;
+            
+            // Перерисовываем
+            if (gameState === 'playing') {
+                draw();
+            }
+        }
+        
+        // Инициализация игры
+        function initGame() {
+            score = 0;
+            attempts = 0;
+            updateScoreDisplay();
+            startAttempt();
+        }
+        
+        // Начало попытки
+        function startAttempt() {
+            ball.x = canvasWidth / 2;
+            ball.y = canvasHeight - 150;
+            ball.speedX = 0;
+            ball.speedY = 0;
+            ball.moving = false;
+            ball.scored = false;
+            ball.saved = false;
+            ball.trail = [];
+            
+            goalkeeper.x = canvasWidth / 2 - goalkeeper.width / 2;
+            goalkeeper.y = 100;
+            goalkeeper.moving = true;
+            goalkeeper.catchAnimation = 0;
+            goalkeeper.direction = Math.random() > 0.5 ? 1 : -1;
+            
+            // Настройка сложности
+            if (difficulty === 'easy') {
+                goalkeeper.speed = 2;
+            } else if (difficulty === 'medium') {
+                goalkeeper.speed = 3;
+            } else {
+                goalkeeper.speed = 4;
+            }
+            
+            swipeStart = null;
+            swipeEnd = null;
+            isSwiping = false;
+            powerBar.style.display = 'none';
+            
+            // Показать инструкцию
+            instruction.style.opacity = '0.8';
+        }
+        
+        // Показать сообщение
+        function showMessage(text, duration = 120) {
+            message = text;
+            messageDisplay.textContent = message;
+            messageDisplay.style.opacity = '1';
+            messageTimer = duration;
+        }
+        
+        // Обновить отображение счета
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `Голы: ${score}/${attempts}`;
+        }
+        
+        // Создать частицы для эффекта гола
+        function createGoalParticles() {
+            for (let i = 0; i < 50; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 3 + 1;
+                
+                particles.push({
+                    x: ball.x,
+                    y: ball.y,
+                    speedX: Math.cos(angle) * speed,
+                    speedY: Math.sin(angle) * speed,
+                    size: Math.random() * 5 + 2,
+                    life: Math.random() * 30 + 30,
+                    color: `hsl(${Math.random() * 60 + 30}, 100%, 50%)`
+                });
+            }
+        }
+        
+        // Проверка гола
+        function checkGoal() {
+            // Проверяем, пересек ли мяч линию ворот
+            if (ball.y <= goal.y + goal.height) {
+                // Проверяем, не поймал ли вратарь
+                if (!(goalkeeper.x <= ball.x && ball.x <= goalkeeper.x + goalkeeper.width)) {
+                    ball.scored = true;
+                    score++;
+                    updateScoreDisplay();
+                    playSound('goal');
+                    createGoalParticles();
+                    showMessage("ГОООЛ!!!", 60);
+                    return true;
+                }
+            } else if (ball.y < goal.y + goal.height) {
+                showMessage("МИМО!", 60);
+            }
+            return false;
+        }
+        
+        // Проверка, поймал ли вратарь мяч
+        function checkGoalkeeperCatch() {
+            if (!ball.moving) return false;
+            
+            // Упрощенная проверка столкновения
+            const ballLeft = ball.x - ball.radius;
+            const ballRight = ball.x + ball.radius;
+            const ballTop = ball.y - ball.radius;
+            const ballBottom = ball.y + ball.radius;
+            
+            const keeperLeft = goalkeeper.x;
+            const keeperRight = goalkeeper.x + goalkeeper.width;
+            const keeperTop = goalkeeper.y;
+            const keeperBottom = goalkeeper.y + goalkeeper.height;
+            
+            if (ballRight > keeperLeft && ballLeft < keeperRight &&
+                ballBottom > keeperTop && ballTop < keeperBottom) {
+                
+                // Отскок мяча
+                ball.speedX = -ball.speedX * 0.5;
+                ball.speedY = -ball.speedY * 0.3;
+                ball.rotationSpeed *= -1;
+                
+                // Анимация вратаря
+                goalkeeper.catchAnimation = 15;
+                goalkeeper.saveX = goalkeeper.x;
+                goalkeeper.saveY = goalkeeper.y;
+                goalkeeper.moving = false;
+                
+                ball.saved = true;
+                playSound('miss');
+                showMessage("СОХРАНИЛ!", 60);
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Обновление игры
+        function update() {
+            // Обновление сообщений
+            if (messageTimer > 0) {
+                messageTimer--;
+                if (messageTimer === 0) {
+                    messageDisplay.style.opacity = '0';
+                }
+            }
+            
+            // Обновление мяча
+            if (ball.moving) {
+                // Добавляем позицию в след
+                if (ball.trail.length < 10 || Math.random() > 0.7) {
+                    ball.trail.push({ x: ball.x, y: ball.y });
+                }
+                if (ball.trail.length > 10) {
+                    ball.trail.shift();
+                }
+                
+                // Обновляем позицию
+                ball.x += ball.speedX;
+                ball.y += ball.speedY;
+                
+                // Обновляем вращение
+                ball.rotation += ball.rotationSpeed;
+                
+                // Гравитация
+                ball.speedY += 0.2;
+                
+                // Трение
+                ball.speedX *= 0.99;
+                ball.speedY *= 0.99;
+                
+                // Отскок от земли
+                if (ball.y >= canvasHeight - 50 - ball.radius) {
+                    ball.y = canvasHeight - 50 - ball.radius;
+                    ball.speedY *= -0.7;
+                    ball.speedX *= 0.9;
+                    playSound('kick');
+                }
+                
+                // Если мяч остановился
+                if (Math.abs(ball.speedX) < 0.1 && Math.abs(ball.speedY) < 0.1 && 
+                    ball.y >= canvasHeight - 55 - ball.radius) {
+                    ball.moving = false;
+                }
+            }
+            
+            // Обновление вратаря
+            if (goalkeeper.moving) {
+                goalkeeper.x += goalkeeper.speed * goalkeeper.direction;
+                
+                if (goalkeeper.x <= canvasWidth / 2 - 150 || 
+                    goalkeeper.x >= canvasWidth / 2 + 70) {
+                    goalkeeper.direction *= -1;
+                }
+            }
+            
+            // Анимация вратаря при ловле
+            if (goalkeeper.catchAnimation > 0) {
+                goalkeeper.catchAnimation--;
+                goalkeeper.y = goalkeeper.saveY - Math.sin(goalkeeper.catchAnimation * 0.2) * 30;
+            }
+            
+            // Проверка ловли мяча вратарем
+            checkGoalkeeperCatch();
+            
+            // Проверка гола
+            if (!ball.moving && !ball.scored && !ball.saved) {
+                checkGoal();
+            }
+            
+            // Обновление частиц
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].x += particles[i].speedX;
+                particles[i].y += particles[i].speedY;
+                particles[i].life--;
+                
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Автоматический запуск следующей попытки
+            if (!ball.moving && ball.y > canvasHeight / 2 && 
+                gameState === 'playing' && attempts < 5 && 
+                !ball.scored && !ball.saved) {
+                
+                setTimeout(() => {
+                    attempts++;
+                    updateScoreDisplay();
+                    startAttempt();
+                }, 1000);
+            }
+            
+            // Завершение игры после 5 попыток
+            if (attempts >= 5 && !ball.moving && gameState === 'playing') {
+                showResult();
+            }
+        }
+        
+        // Показать экран результатов
+        function showResult() {
+            gameState = 'result';
+            resultScore.textContent = `Ваш счет: ${score} из 5`;
+            
+            let rating, color;
+            if (score === 5) {
+                rating = "ВЕЛИКОЛЕПНО! Вы мастер пенальти!";
+                color = "gold";
+            } else if (score >= 3) {
+                rating = "ХОРОШО! Отличный результат!";
+                color = "#4CAF50";
+            } else if (score >= 1) {
+                rating = "НЕПЛОХО! Тренируйтесь еще!";
+                color = "#FFC107";
+            } else {
+                rating = "ПОПРОБУЙТЕ ЕЩЕ РАЗ! Вы сможете!";
+                color = "#F44336";
+            }
+            
+            resultRating.textContent = rating;
+            resultRating.style.color = color;
+            resultScreen.style.display = 'flex';
+        }
+        
+        // Отрисовка игры
+        function draw() {
+            // Очистка canvas
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            // Фон (небо)
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight / 2);
+            
+            // Трава
+            ctx.fillStyle = '#2E8B57';
+            ctx.fillRect(0, canvasHeight / 2, canvasWidth, canvasHeight / 2);
+            
+            // Разметка поля
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, canvasHeight / 2, canvasWidth, canvasHeight / 2);
+            
+            // Центральный круг
+            ctx.beginPath();
+            ctx.arc(canvasWidth / 2, canvasHeight / 2, 70, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Центральная точка
+            ctx.beginPath();
+            ctx.arc(canvasWidth / 2, canvasHeight / 2, 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            
+            // Центральная линия
+            ctx.beginPath();
+            ctx.moveTo(canvasWidth / 2, canvasHeight / 2);
+            ctx.lineTo(canvasWidth / 2, canvasHeight);
+            ctx.stroke();
+            
+            // Ворота
+            ctx.fillStyle = GOAL_BLUE;
+            ctx.fillRect(goal.x - 10, goal.y, goal.width + 20, 10);
+            ctx.fillRect(goal.x - 10, goal.y, 10, goal.height);
+            ctx.fillRect(goal.x + goal.width, goal.y, 10, goal.height);
+            
+            // Сетка ворот
+            ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
+            ctx.lineWidth = 1;
+            
+            // Горизонтальные линии
+            for (let y = goal.y + 10; y < goal.y + goal.height; y += 15) {
+                ctx.beginPath();
+                ctx.moveTo(goal.x, y);
+                ctx.lineTo(goal.x + goal.width, y);
+                ctx.stroke();
+            }
+            
+            // Вертикальные линии
+            for (let x = goal.x; x < goal.x + goal.width; x += 15) {
+                ctx.beginPath();
+                ctx.moveTo(x, goal.y);
+                ctx.lineTo(x, goal.y + goal.height);
+                ctx.stroke();
+            }
+            
+            // Вратарь
+            const gkX = goalkeeper.catchAnimation > 0 ? goalkeeper.saveX : goalkeeper.x;
+            const gkY = goalkeeper.catchAnimation > 0 ? goalkeeper.y : goalkeeper.y;
+            
+            ctx.fillStyle = '#1E88E5';
+            ctx.fillRect(gkX, gkY, goalkeeper.width, goalkeeper.height);
+            
+            // Голова вратаря
+            ctx.fillStyle = '#FFCCBC';
+            ctx.beginPath();
+            ctx.arc(gkX + goalkeeper.width / 2, gkY - 20, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Глаза
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(gkX + goalkeeper.width / 2 - 10, gkY - 25, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(gkX + goalkeeper.width / 2 + 10, gkY - 25, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Перчатки
+            ctx.fillStyle = '#FFCDD2';
+            ctx.fillRect(gkX - 10, gkY + 20, 20, 40);
+            ctx.fillRect(gkX + goalkeeper.width - 10, gkY + 20, 20, 40);
+            
+            // Мяч
+            // След мяча
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            for (let i = 0; i < ball.trail.length; i++) {
+                const alpha = i / ball.trail.length;
+                const size = ball.radius * alpha;
+                ctx.beginPath();
+                ctx.arc(ball.trail[i].x, ball.trail[i].y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Мяч
+            ctx.save();
+            ctx.translate(ball.x, ball.y);
+            ctx.rotate(ball.rotation * Math.PI / 180);
+            
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(0, 0, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Узор на мяче
+            ctx.beginPath();
+            ctx.moveTo(-ball.radius, 0);
+            ctx.lineTo(ball.radius, 0);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, -ball.radius);
+            ctx.lineTo(0, ball.radius);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, ball.radius * 0.7, 0, Math.PI / 2);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, ball.radius * 0.7, Math.PI, 3 * Math.PI / 2);
+            ctx.stroke();
+            
+            ctx.restore();
+            
+            // Частицы
+            for (const p of particles) {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Линия свайпа
+            if (isSwiping && swipeStart) {
+                const currentPos = getTouchPos();
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(swipeStart.x, swipeStart.y);
+                ctx.lineTo(currentPos.x, currentPos.y);
+                ctx.stroke();
+            }
+        }
+        
+        // Главный игровой цикл
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Получение позиции касания
+        function getTouchPos() {
+            if (touchX !== null && touchY !== null) {
+                return { x: touchX, y: touchY };
+            }
+            return { x: 0, y: 0 };
+        }
+        
+        // Обработчики событий
+        let touchX = null;
+        let touchY = null;
+        
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchX = touch.clientX;
+            touchY = touch.clientY;
+            
+            if (gameState === 'playing' && !ball.moving && attempts < 5) {
+                // Проверяем, касаемся ли мяча
+                const dist = Math.sqrt(
+                    Math.pow(touchX - ball.x, 2) + 
+                    Math.pow(touchY - ball.y, 2)
+                );
+                
+                if (dist <= ball.radius * 2) {
+                    isSwiping = true;
+                    swipeStart = { x: touchX, y: touchY };
+                    powerBar.style.display = 'block';
+                    instruction.style.opacity = '0';
+                }
+            }
+        }
+        
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchX = touch.clientX;
+            touchY = touch.clientY;
+            
+            if (isSwiping && swipeStart) {
+                const dx = touchX - swipeStart.x;
+                const dy = touchY - swipeStart.y;
+                power = Math.min(Math.sqrt(dx * dx + dy * dy) / 5, 100);
+                
+                powerFill.style.width = `${power}%`;
+                powerText.textContent = `Сила удара: ${Math.round(power)}%`;
+            }
+        }
+        
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            
+            if (isSwiping && swipeStart) {
+                swipeEnd = getTouchPos();
+                const dx = swipeEnd.x - swipeStart.x;
+                const dy = swipeEnd.y - swipeStart.y;
+                
+                // Рассчитываем силу и направление удара
+                power = Math.min(Math.sqrt(dx * dx + dy * dy) / 5, 100);
+                const angle = Math.atan2(dy, dx);
+                
+                // Задаем скорость мяча
+                ball.speedX = -power * 0.2 * Math.cos(angle);
+                ball.speedY = -power * 0.2 * Math.sin(angle);
+                ball.rotationSpeed = -dx * 0.3;
+                ball.moving = true;
+                
+                // Скрываем полосу силы
+                powerBar.style.display = 'none';
+                
+                // Проигрываем звук удара
+                playSound('kick');
+                
+                // Сбрасываем свайп
+                isSwiping = false;
+                swipeStart = null;
+                swipeEnd = null;
+            }
+            
+            touchX = null;
+            touchY = null;
+        }
+        
+        // Обработчики кнопок меню
+        difficultyBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                difficultyBtns.forEach(b => b.style.backgroundColor = '#333');
+                btn.style.backgroundColor = '#1E88E5';
+                difficulty = btn.dataset.difficulty;
+            });
+        });
+        
+        startBtn.addEventListener('click', () => {
+            gameState = 'playing';
+            menu.style.display = 'none';
+            initGame();
+        });
+        
+        restartBtn.addEventListener('click', () => {
+            gameState = 'playing';
+            resultScreen.style.display = 'none';
+            initGame();
+        });
+        
+        menuBtn.addEventListener('click', () => {
+            gameState = 'menu';
+            resultScreen.style.display = 'none';
+            menu.style.display = 'flex';
+        });
+        
+        // Настройка обработчиков событий
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+        
+        // Выбрать среднюю сложность по умолчанию
+        difficultyBtns[1].style.backgroundColor = '#1E88E5';
+        
+        // Запуск игры
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        gameLoop();
+    </script>
+</body>
+</html>
